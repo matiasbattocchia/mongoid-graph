@@ -87,13 +87,11 @@ describe Mongoid::Graph do
   end
 
   it 'filters endpoints by a combination of direction, node and link classes' do
-    pending 'Mongoid not persisting documents'
-
     @alice.connect_to(@bob, Friend.create)
     @alice.connect_to(@zack)
     @zack.connect_to(@alice)
 
-    expect( @alice.endpoints() ).to eq( [@bob, @zack] )
+    expect( @alice.endpoints() ).to eq( [@zack, @bob] )
     expect( @alice.endpoints(:in) ).to eq( [@zack] )
     expect( @alice.endpoints(:out) ).to eq( [@bob, @zack] )
     # expect( @alice.endpoints(nodes: Pokemon) ).to eq( [@zack] )
@@ -111,8 +109,11 @@ describe Mongoid::Graph do
   it 'filters by properties'
   it 'has filters with chainable results'
   it 'has handy aliases for common endpoints() cases'
-  it 'disconnects nodes'
+  it 'disconnects nodes' do
+    pending 'Algo hay hecho'
+  end
   it 'updates the graph properly upon a document deletion'
+  # Array of nodes and links, or nodes and a block for building links.
   it 'has bulk operations'
   it 'has callbacks'
   it 'has validations'

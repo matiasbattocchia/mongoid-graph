@@ -9,6 +9,10 @@ module Mongoid
         end
       end
 
+      def label
+        id.to_s
+      end
+
       def connect_to target, link = nil, source = self
         s = [source.class.to_s, source.id]
         t = [target.class.to_s, target.id]
@@ -18,38 +22,76 @@ module Mongoid
         
           l = [link.class.to_s, link.id]
           
-          link.update_attributes(source: s, target: t)
+          link.source = s
+          link.target = t
+          link.save
         else
           l = []
         end
 
-        source.update_attributes(
-          successors: source.read_attribute(:successors) << t + l)
+        source.successors << t + l
+        target.predecessors << s + l
 
-        target.update_attributes(
-          predecessors: target.read_attribute(:predecessors) << s + l)
+        source.save
+        target.save
+
+        {source: source, link: link, target: target}
+      end
+
+      def disconnect_from target, link = nil, source = self
+        s = [source.class.to_s, source.id]
+        t = [target.class.to_s, target.id]
+
+        if link
+          #raise LinkError, 'Link already in use. Disconnect it first!' if link.source || link.target
         
+          l = [link.class.to_s, link.id]
+          
+          link.source = nil
+          link.target = nil
+          link.save
+        else
+          l = []
+        end
+        
+        source.successors >> t + l
+        target.predecessors >> s + l
+
+        source.save
+        target.save
+
         {source: source, link: link, target: target}
       end
 
       def endpoints direction = :both, nodes: nil, links: nil
-
         case direction
         when :in
-          nodes = read_attribute(:predecessors)
+          nodes = predecessors
         when :out
-          nodes = read_attribute(:successors)
+          nodes = successors
         else
-          nodes = read_attribute(:predecessors) + read_attribute(:successors)
+          nodes = predecessors + successors
         end
 
         # TODO: Sort by class and find multiple ids at once.
-        # TODO: Establish a criteria for sorting the result before return it.
+        # TODO: Establish a criteria for sorting results before return them.
         nodes.uniq.map do |node|
           node[0].constantize.find node[1]
         end.compact
       end
 
+      def endpoints? direction = :both
+        case direction
+        when :in
+          nodes = predecessors
+        when :out
+          nodes = successors
+        else
+          nodes = predecessors + successors
+        end
+
+        nodes.empty?
+      end
     end
   end
 end
